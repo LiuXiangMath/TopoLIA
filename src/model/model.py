@@ -192,10 +192,10 @@ class TopoEmbeddings(nn.Module):
         
 
 # -------------------------------------------------------------------------------------------------
-# Sheaf Transformer Components
+# LI Transformer Components
 # -------------------------------------------------------------------------------------------------
 
-class SheafValueTransformLinear(nn.Module):
+class LIValueTransformLinear(nn.Module):
     def __init__(self, D, H, d):
         super().__init__()
         self.D = D # dim
@@ -238,7 +238,7 @@ class SheafValueTransformLinear(nn.Module):
         return base_i + out_j + out_v
 
 
-class SheafValueTransformNonlinear(nn.Module):
+class LIValueTransformNonlinear(nn.Module):
     def __init__(self, D, H, d, r = 8, bias= True):
         super().__init__()
         self.D = D # dim
@@ -284,7 +284,7 @@ class SheafValueTransformNonlinear(nn.Module):
         return out
 
 
-class SheafTransformerLayer(nn.Module):
+class LITransformerLayer(nn.Module):
     def __init__(self, dim, heads, stalk_dim, low_rank, norm_typ,dropout):
         super().__init__()
         assert dim % heads == 0
@@ -303,8 +303,8 @@ class SheafTransformerLayer(nn.Module):
         )
         
         
-        #self.sheaf_transform = SheafValueTransformLinear(dim,heads,stalk_dim)
-        self.sheaf_transform = SheafValueTransformNonlinear(dim,heads,stalk_dim,low_rank)
+        #self.LI_transform = LIValueTransformLinear(dim,heads,stalk_dim)
+        self.LI_transform = LIValueTransformNonlinear(dim,heads,stalk_dim,low_rank)
         
         
         self.reset_parameters()
@@ -325,7 +325,7 @@ class SheafTransformerLayer(nn.Module):
         scores = torch.matmul(q, k.transpose(-2,-1)) / (math.sqrt(self.stalk_dim))
         attn   = F.softmax(scores, dim=-1)
         attn   = self.dropout(attn)
-        out = self.sheaf_transform(x, v, attn)   # (B,H,L,D)
+        out = self.LI_transform(x, v, attn)   # (B,H,L,D)
         out = out.transpose(1,2).reshape(B, L, -1)
         out    = self.W_o(out)
 
@@ -344,7 +344,7 @@ class SheafTransformerLayer(nn.Module):
         scores = torch.matmul(q, k.transpose(-2,-1)) / (math.sqrt(self.stalk_dim))
         attn   = F.softmax(scores, dim=-1)
         attn   = self.dropout(attn)
-        out = self.sheaf_transform(x, v, attn)   # (B,H,L,D)
+        out = self.LI_transform(x, v, attn)   # (B,H,L,D)
         out = out.transpose(1,2).reshape(B, L, -1)
         out    = self.W_o(out)
 
@@ -369,7 +369,7 @@ class TopoEncoder(nn.Module):
     def __init__(self, dim, heads, stalk_dim, low_rank, dropout, num_layers, norm_typ):
         super().__init__()
         
-        self.layers = nn.ModuleList([ SheafTransformerLayer(dim, heads, stalk_dim, low_rank, norm_typ,dropout) for _ in range(num_layers) ])
+        self.layers = nn.ModuleList([ LITransformerLayer(dim, heads, stalk_dim, low_rank, norm_typ,dropout) for _ in range(num_layers) ])
         
     def forward(self,x):
         for layer in self.layers:
@@ -452,7 +452,7 @@ class TopoDecoder(nn.Module):
     def __init__(self, dim, heads, stalk_dim, low_rank, dropout, num_layers, norm_typ):
         super().__init__()
         
-        self.layers = nn.ModuleList([ SheafTransformerLayer(dim, heads, stalk_dim, low_rank, norm_typ, dropout) for _ in range(num_layers) ])
+        self.layers = nn.ModuleList([ LITransformerLayer(dim, heads, stalk_dim, low_rank, norm_typ, dropout) for _ in range(num_layers) ])
         
     def forward(self,x):
         for layer in self.layers:
@@ -461,7 +461,7 @@ class TopoDecoder(nn.Module):
 
 
 # -------------------------------------------------------------------------------------------------
-# Masked CoPresheaf Transformer Pretrain
+# Masked LI Transformer Pretrain
 # ------------------------------------------------------------------------------------------------- 
 class Pretrain(nn.Module):
     def __init__(self, para):
