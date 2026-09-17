@@ -35,3 +35,4 @@ def prepare_laplacian(dataname,para):
         print(f'{pdb} ok, {i+1}/{len(data)}')
 
 
+

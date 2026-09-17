@@ -7,23 +7,11 @@ import scipy as sp
 from sklearn.metrics import mean_squared_error
 import torch
 
-from ._runtime_guard import (
-    require_int,
-    require_mapping_keys,
-    require_probability,
-)
-
 
 # -------------------------------------------------------------------------------------------------
 # warmup scheduler, save and load model
 # -------------------------------------------------------------------------------------------------
 def get_warmup_cosine_scheduler(optimizer, warmup_steps, total_steps, min_lr_ratio=0.0):
-    warmup_steps = require_int(warmup_steps, 'warmup steps', minimum=0)
-    total_steps = require_int(total_steps, 'total scheduler steps', minimum=1)
-    min_lr_ratio = require_probability(min_lr_ratio, 'minimum learning-rate ratio')
-    if warmup_steps > total_steps:
-        raise ValueError('warmup steps cannot exceed total scheduler steps')
-
     def lr_lambda(current_step):
         current_step += 1 
         if current_step < warmup_steps:
@@ -48,7 +36,6 @@ def get_rng_state():
     return state
 
 def set_rng_state(state):
-    state = require_mapping_keys(state, ('python', 'numpy', 'torch'), 'RNG state')
     random.setstate(state['python'])
     np.random.set_state(state['numpy'])
     torch.set_rng_state(state['torch'])
@@ -68,8 +55,7 @@ def save_model(path, model, para, optimizer, scheduler, epoch):
     torch.save(ckpt, path)
 
 def load_model(path, model, optimizer=None, scheduler=None,map_location='cpu'):
-    ckpt = torch.load(path, map_location=map_location, weights_only=False)
-    ckpt = require_mapping_keys(ckpt, ('model', 'epoch'), 'checkpoint')
+    ckpt = torch.load(path, map_location=map_location)
     model.load_state_dict(ckpt['model'])
 
     if optimizer is not None and ckpt.get('optimizer') is not None:
